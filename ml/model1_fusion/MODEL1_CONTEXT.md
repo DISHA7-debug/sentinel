@@ -16,7 +16,7 @@ This runs first in the pipeline. Its output feeds directly into Model 3 (risk sc
 
 ## Architecture
 
-Use **BEVFusion** (Bird's Eye View Fusion) — pretrained on nuScenes, fine-tune on IDD.
+Use **BEVFusion** (Bird's Eye View Fusion) — pretrained on nuScenes, fine-tune on DATS_2022 + Roboflow "Indian Roads Detection" (see Model 2's context doc — same dataset swap applies here; IDD registration was taking too long, dropped in favor of these two, no signup wait).
 
 ```
 Camera (RGB 640×640) ─────┐
@@ -45,7 +45,7 @@ wget https://download.openmmlab.com/mmdet3d/v1.0.0_models/bevfusion/bevfusion_lc
 
 ## Training (Fine-tuning)
 
-**Dataset:** nuScenes (for pretraining backbone) + IDD (India Driving Dataset) for domain adaptation
+**Dataset:** nuScenes (for pretraining backbone) + DATS_2022 + Roboflow "Indian Roads Detection" for domain adaptation
 
 ```python
 # Fine-tuning script outline
@@ -54,8 +54,8 @@ from mmdet3d.apis import train_model
 from mmdet3d.datasets import build_dataset
 from mmdet3d.models import build_model
 
-# Use nuScenes-pretrained BEVFusion, fine-tune on IDD
-# IDD doesn't have LiDAR, so freeze LiDAR branch; only train camera branch + fusion head
+# Use nuScenes-pretrained BEVFusion, fine-tune on DATS_2022 + Roboflow data
+# Neither DATS_2022 nor the Roboflow set has LiDAR, so freeze LiDAR branch; only train camera branch + fusion head
 
 config = {
     "model": "bevfusion",

@@ -39,28 +39,41 @@ CLASS_NAMES = [
 
 ## Datasets
 
-### Primary Dataset — IDD (India Driving Dataset)
-- **Download:** https://idd.insaan.iiit.ac.in/ (free, requires registration with IIIT Hyderabad)
-- 10,004 images, captured in Hyderabad and Bangalore
-- Has auto-rickshaws, motorcycles, pedestrians, cattle
-- Labels are in Cityscapes format — convert to YOLO format (script below)
+> **Dataset source changed:** IDD (India Driving Dataset) was the original 
+> plan, but registration approval was taking 2-4 weeks and blocking the team. 
+> Switched to DATS_2022 + Roboflow below — both are instant-access, and 
+> between them cover more of our 15 classes natively than IDD did.
 
-### Secondary Dataset — COCO (for pretraining backbone)
+### Primary Dataset — DATS_2022
+- **Download:** https://data.mendeley.com/datasets/nfc34n8svj/2 (no registration, direct download, CC BY 4.0)
+- 10,000+ images, captured in Pune and surrounding areas, Maharashtra
+- Native categories include rickshaw, tractor, cattle, cart, dog, goat, bus, truck, person
+- Annotations provided in .xml/.txt/.json for a subset of images — not every image is labeled, filter to annotated images only
+- Labels are mixed format — convert to YOLO format (script below)
+
+### Secondary Dataset — Roboflow "Indian Roads Detection"
+- **Download:** https://universe.roboflow.com/indian-road-dataset/indian-roads-detection (free account, instant approval — not a wait-list)
+- 2,618 images, already exported in YOLO format natively
+- Native classes include Autorickshaw, Cattle, Goat, Tractor, Cart, Dog — use to supplement underrepresented classes from DATS_2022
+
+### Tertiary Dataset — COCO (for pretraining backbone)
 - Already included in YOLOv8 pretrained weights
 
 ### Supplementary — Kaggle Indian Roads
 - https://www.kaggle.com/datasets/sakshamjn/vehicle-detection-8-class-object-detection
 - Smaller but has good diversity
 
-### Self-collected (important!)
-Scrape 200–400 frames from YouTube Indian dashcam videos:
+### Self-collected (important — still needed regardless of dataset source!)
+Neither DATS_2022 nor the Roboflow set reliably covers **pothole, 
+construction_debris, or speed_breaker**. Scrape 200–400 frames from YouTube 
+Indian dashcam videos for these specifically:
 - "Indian highway driving 2024"
 - "Mumbai traffic dashcam"
 - "Rajasthan highway cattle"
 
 Use **Roboflow** (free tier) to annotate: https://roboflow.com
 - Use Roboflow's auto-label with CLIP for speed
-- Focus on cattle, potholes, auto-rickshaws — the rarest classes
+- Focus on potholes, construction_debris, speed_breaker — the classes neither base dataset covers
 
 ---
 
@@ -71,23 +84,29 @@ Use **Roboflow** (free tier) to annotate: https://roboflow.com
 pip install ultralytics roboflow albumentations
 ```
 
-### Step 2: Convert IDD to YOLO format
+### Step 2: Convert DATS_2022 to YOLO format
 ```python
 import json, os, shutil
 from pathlib import Path
 
-def convert_idd_to_yolo(idd_annotation_path, output_dir):
-    """Convert IDD Cityscapes JSON annotations to YOLO txt format."""
+def convert_dats2022_to_yolo(dats_annotation_path, output_dir):
+    """Convert DATS_2022 annotations (.xml/.txt/.json, mixed) to YOLO txt format.
+    Only a subset of DATS_2022 images have annotations -- filter accordingly."""
     os.makedirs(f"{output_dir}/images", exist_ok=True)
     os.makedirs(f"{output_dir}/labels", exist_ok=True)
 
-    IDD_TO_SENTINEL = {
-        "car": 0, "truck": 1, "bus": 2, "motorcycle": 3,
-        "bicycle": 4, "person": 5, "autorickshaw": 6,
-        "animal": 7,   # map to cattle (7)
+    DATS_TO_SENTINEL = {
+        "car": 0, "truck": 1, "bus": 2, "motorcycle": 3, "bike": 3,
+        "cycle": 4, "person": 5, "rickshaw": 6, "autorickshaw": 6,
+        "cattle": 7, "goat": 7, "dog": 8, "tractor": 14, "cart": 13,
+        # NOTE: verify this mapping against the actual category list once
+        # DATS_2022 is downloaded -- category names above are based on
+        # published dataset documentation, not a guaranteed exact match.
+        # pothole, construction_debris, speed_breaker are NOT in DATS_2022
+        # natively -- these come from the self-collected set only.
     }
 
-    with open(idd_annotation_path) as f:
+    with open(dats_annotation_path) as f:
         data = json.load(f)
 
     for img_info in data["images"]:
@@ -98,9 +117,9 @@ def convert_idd_to_yolo(idd_annotation_path, output_dir):
         lines = []
         for ann in anns:
             cat = data["categories"][ann["category_id"] - 1]["name"]
-            if cat not in IDD_TO_SENTINEL:
+            if cat not in DATS_TO_SENTINEL:
                 continue
-            cls = IDD_TO_SENTINEL[cat]
+            cls = DATS_TO_SENTINEL[cat]
             x, y, w, h = ann["bbox"]
             cx = (x + w/2) / W
             cy = (y + h/2) / H
@@ -112,6 +131,15 @@ def convert_idd_to_yolo(idd_annotation_path, output_dir):
             f.write("\n".join(lines))
 
     print(f"✅ Converted {len(data['images'])} images")
+
+
+def merge_roboflow_export(roboflow_yolo_dir, output_dir):
+    """Roboflow exports YOLO format natively -- just remap class indices
+    to our fixed 15-class order and copy into the merged dataset folder."""
+    # Implementation detail: read Roboflow's data.yaml for its class order,
+    # build an index remap to our DATA_CONTRACTS.md section 7 order, then
+    # rewrite each label file's class indices accordingly before copying.
+    pass  # see convert_roboflow_export.py for full implementation
 ```
 
 ### Step 3: Data Augmentation (critical for Indian roads)
@@ -131,7 +159,7 @@ augment = A.Compose([
 
 ### Step 4: YAML config
 ```yaml
-# sentinel_idd.yaml
+# sentinel_dataset.yaml
 path: ./data/sentinel_dataset
 train: images/train
 val: images/val
@@ -164,7 +192,7 @@ from ultralytics import YOLO
 model = YOLO("yolov8m.pt")
 
 results = model.train(
-    data="sentinel_idd.yaml",
+    data="sentinel_dataset.yaml",
     epochs=80,
     imgsz=640,
     batch=16,
@@ -242,9 +270,10 @@ print("✅ Model 2 exported")
 
 ## Useful Links
 
-- IDD Dataset: https://idd.insaan.iiit.ac.in/
+- DATS_2022 Dataset: https://data.mendeley.com/datasets/nfc34n8svj/2
+- Roboflow "Indian Roads Detection": https://universe.roboflow.com/indian-road-dataset/indian-roads-detection
 - YOLOv8 docs: https://docs.ultralytics.com
-- Roboflow annotation: https://roboflow.com
+- Roboflow annotation (for self-collected pothole/speed_breaker/debris data): https://roboflow.com
 - Albumentations: https://albumentations.ai
 - Google Colab for training: https://colab.research.google.com
 
@@ -254,9 +283,9 @@ print("✅ Model 2 exported")
 
 ```
 1. Mount Google Drive
-2. pip install ultralytics albumentations
-3. Download IDD via gdown or upload manually
-4. Run convert_idd_to_yolo()
+2. pip install ultralytics roboflow albumentations
+3. Download DATS_2022 directly (no auth) + download Roboflow export (free account)
+4. Run convert_dats2022_to_yolo() and merge_roboflow_export()
 5. Run augmentation pipeline
 6. Train YOLOv8m
 7. Export to ONNX
