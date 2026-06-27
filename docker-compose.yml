@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml/weights:/app/models/weights
+      - ./backend/fl_updates:/app/fl_updates
+    environment:
+      - MODEL_DIR=/app/models/weights
+      - INFERENCE_FPS=10
+      - RISK_THRESHOLD_HIGH=0.6
+      - RISK_THRESHOLD_CRITICAL=0.8
+      - ENABLE_GPU=false
+      - LOG_LEVEL=info
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000/ws/stream
+    depends_on:
+      - backend
+    restart: unless-stopped

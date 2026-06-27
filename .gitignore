@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.env
+node_modules/
+dist/
+build/
+*.onnx
+*.pt
+*.pth
+ml/weights/
+fl_updates/
+data/*.npz
+.DS_Store
