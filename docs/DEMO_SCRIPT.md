@@ -65,7 +65,7 @@ Show the system diagram. Point to each of the 5 modules briefly.
 > Our system is purpose-built for this market — not adapted from Western ADAS."
 
 ### Slide 5: Technical Differentiation (30 sec)
-- Only ADAS system with India-specific training data (IDD + collected)
+- Only ADAS system with India-specific training data (DATS_2022 + Roboflow + collected)
 - 15 India-specific object classes including cattle, auto-rickshaws, potholes
 - Runs fully offline on edge hardware — no cloud latency
 - Multilingual HMI (Hindi voice alerts)
@@ -76,7 +76,7 @@ Show the system diagram. Point to each of the 5 modules briefly.
 ## Questions to Prepare For
 
 **Q: How accurate is the cattle detection?**
-A: "Our Model 2 achieves >70% mAP on cattle class using the IDD dataset augmented with our self-collected data. We're continuing to improve this with more India-specific images."
+A: "Our Model 2 achieves >70% mAP on cattle class using the DATS_2022 and Roboflow Indian road datasets augmented with our self-collected data. We're continuing to improve this with more India-specific images."
 
 **Q: What hardware does this run on?**
 A: "NVIDIA Jetson Orin NX 16GB for the full stack. The entire pipeline runs under 100ms latency. In production, Qualcomm Snapdragon Ride is another target platform."
