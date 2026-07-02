@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  :root {
+    color-scheme: dark;
+    --bg: #090909;
+    --card: rgba(24, 24, 24, 0.95);
+    --card-rgb: 24, 24, 24;
+    --card-border: rgba(255, 255, 255, 0.08);
+    --button: rgba(24, 24, 24, 0.85);
+    --text: #ffffff;
+    --muted: #94a3b8;
+    --bg-panel: #0b0b0b;
+    --scroll-track: #090909;
+    --scroll-thumb: #252525;
+    --scroll-hover: #383838;
+  }
+
+  html[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f4f5f7;
+    --card: rgba(255, 255, 255, 0.92);
+    --card-rgb: 255, 255, 255;
+    --card-border: rgba(15, 23, 42, 0.08);
+    --button: rgba(255, 255, 255, 0.90);
+    --text: #0f172a;
+    --muted: #64748b;
+    --bg-panel: #e2e8f0;
+    --scroll-track: #e2e8f0;
+    --scroll-thumb: #94a3b8;
+    --scroll-hover: #64748b;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  button {
+    font: inherit;
+  }
+
+  ::selection {
+    background: rgba(55, 227, 110, 0.25);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #090909;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #252525;
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #383838;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 26px;
+    box-shadow: 0 45px 90px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(24px);
+  }
+
+  .glass-button {
+    background: var(--button);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  }
+}
