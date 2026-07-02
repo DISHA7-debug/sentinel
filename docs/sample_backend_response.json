@@ -1,0 +1,26 @@
+{
+    "frame_id": "sample_frame_001",
+    "detections": [
+        {
+            "class_name": "pothole",
+            "confidence": 0.87,
+            "bbox": [
+                120,
+                360,
+                340,
+                520
+            ],
+            "risk_score": 0.9,
+            "risk_level": "Critical",
+            "explanation": "Pothole detected near the lower center of the frame, suggesting close road hazard."
+        }
+    ],
+    "scene_fusion": {
+        "scene_risk_score": 0.86,
+        "scene_risk_level": "Critical",
+        "recommended_action": "Immediate driver alert: brake or avoid obstacle",
+        "top_risky_objects": [
+            "pothole"
+        ]
+    }
+}

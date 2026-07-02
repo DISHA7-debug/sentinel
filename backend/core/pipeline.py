@@ -17,15 +17,14 @@ HINDI_CLASS_MAP = {
     "motorcycle": "मोटरसाइकिल",
     "bicycle": "साइकिल",
     "pedestrian": "पैदल यात्री",
+    "rider": "राइडर",
     "auto_rickshaw": "ऑटो रिक्शा",
-    "cattle": "गाय",
-    "dog": "कुत्ता",
+    "animal": "जानवर",
+    "traffic_sign": "यातायात संकेत",
+    "traffic_light": "यातायात बत्ती",
+    "vehicle_fallback": "वाहन",
     "pothole": "गड्ढा",
-    "construction_debris": "निर्माण सामग्री",
-    "speed_breaker": "गति अवरोधक (स्पीड ब्रेकर)",
-    "cycle_rickshaw": "साइकिल रिक्शा",
-    "handcart": "हाथ गाड़ी",
-    "tractor": "ट्रैक्टर"
+    "crack": "दरार"
 }
 
 class InferencePipeline:
@@ -33,6 +32,14 @@ class InferencePipeline:
         self.registry = ModelRegistry()
         self.buffers = {}          # session_id -> deque of length 5 (each element is np.ndarray of shape (542,))
         self.frame_counters = {}   # session_id -> int
+        
+        try:
+            from core.scene_fusion_engine import SceneFusionEngine
+            self.fusion_engine = SceneFusionEngine()
+            logger.info("Successfully initialized real SceneFusionEngine")
+        except Exception as e:
+            logger.warning(f"Failed to import/initialize SceneFusionEngine: {e}. Falling back to mock scene fusion.")
+            self.fusion_engine = None
 
     def load_all_models(self):
         self.registry.load_all()
@@ -93,7 +100,7 @@ class InferencePipeline:
             det_vector = np.zeros(30, dtype=np.float32)
             for i, det in enumerate(detections[:5]):
                 det_vector[i * 6 : (i + 1) * 6] = [
-                    det["class_id"] / 15.0,
+                    det["class_id"] / 14.0,
                     det["confidence"],
                     det["bbox"][0],
                     det["bbox"][1],
@@ -125,15 +132,62 @@ class InferencePipeline:
             risk_loader = self.registry.get("risk")
             risk_score = risk_loader.run(sequence_tensor, detections)
 
-            # Label mapping based on configurable settings
-            if risk_score >= settings.risk_threshold_critical:
-                risk_label = "CRITICAL"
-            elif risk_score >= settings.risk_threshold_high:
-                risk_label = "HIGH"
-            elif risk_score >= 0.3:
-                risk_label = "MEDIUM"
+            # Scene Fusion
+            recommended_action = None
+            fusion_explanation = None
+            top_risky_objects = None
+            total_objects = 0
+            max_object_risk = 0.0
+            average_object_risk = 0.0
+            critical_object_count = 0
+            high_object_count = 0
+            vulnerable_object_count = 0
+
+            if self.fusion_engine is not None and detections:
+                try:
+                    import pandas as pd
+                    rows = []
+                    for det in detections:
+                        rows.append({
+                            "class_name": det.get("class_name"),
+                            "risk_score": det.get("risk_score", 0.0),
+                            "risk_level": det.get("risk_level", "Low")
+                        })
+                    df_group = pd.DataFrame(rows)
+                    fusion_res = self.fusion_engine.fuse_image_scene("frame", df_group)
+                    
+                    # Override the overall risk score/label from SceneFusionEngine
+                    risk_score = fusion_res["scene_risk_score"]
+                    risk_label = fusion_res["scene_risk_level"].upper()
+                    
+                    recommended_action = fusion_res.get("recommended_action")
+                    fusion_explanation = fusion_res.get("fusion_explanation")
+                    top_risky_objects = fusion_res.get("top_risky_objects")
+                    total_objects = fusion_res.get("total_objects", 0)
+                    max_object_risk = fusion_res.get("max_object_risk", 0.0)
+                    average_object_risk = fusion_res.get("average_object_risk", 0.0)
+                    critical_object_count = fusion_res.get("critical_object_count", 0)
+                    high_object_count = fusion_res.get("high_object_count", 0)
+                    vulnerable_object_count = fusion_res.get("vulnerable_object_count", 0)
+                except Exception as e:
+                    logger.error(f"Error executing real SceneFusionEngine: {e}")
+                    if risk_score >= settings.risk_threshold_critical:
+                        risk_label = "CRITICAL"
+                    elif risk_score >= settings.risk_threshold_high:
+                        risk_label = "HIGH"
+                    elif risk_score >= 0.3:
+                        risk_label = "MEDIUM"
+                    else:
+                        risk_label = "LOW"
             else:
-                risk_label = "LOW"
+                if risk_score >= settings.risk_threshold_critical:
+                    risk_label = "CRITICAL"
+                elif risk_score >= settings.risk_threshold_high:
+                    risk_label = "HIGH"
+                elif risk_score >= 0.3:
+                    risk_label = "MEDIUM"
+                else:
+                    risk_label = "LOW"
 
             # 4. Conditionally run Model 4 (XAI)
             # Run if there is at least one detection, AND:
@@ -159,7 +213,16 @@ class InferencePipeline:
                 "saliency_map": saliency_map,
                 "alert": alert,
                 "latency_ms": round(latency_ms, 2),
-                "timestamp": time.time()
+                "timestamp": time.time(),
+                "recommended_action": recommended_action,
+                "fusion_explanation": fusion_explanation,
+                "top_risky_objects": top_risky_objects,
+                "total_objects": total_objects,
+                "max_object_risk": max_object_risk,
+                "average_object_risk": average_object_risk,
+                "critical_object_count": critical_object_count,
+                "high_object_count": high_object_count,
+                "vulnerable_object_count": vulnerable_object_count
             }
 
         except Exception as e:
@@ -174,7 +237,16 @@ class InferencePipeline:
                 "saliency_map": None,
                 "alert": {"fire": False},
                 "latency_ms": round(latency_ms, 2),
-                "timestamp": time.time()
+                "timestamp": time.time(),
+                "recommended_action": None,
+                "fusion_explanation": None,
+                "top_risky_objects": None,
+                "total_objects": 0,
+                "max_object_risk": 0.0,
+                "average_object_risk": 0.0,
+                "critical_object_count": 0,
+                "high_object_count": 0,
+                "vulnerable_object_count": 0
             }
 
     def _build_alert(self, risk_label: str, detections: list) -> dict:

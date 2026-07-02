@@ -1,0 +1,50 @@
+{
+    "classes": [
+        "car",
+        "truck",
+        "bus",
+        "motorcycle",
+        "bicycle",
+        "pedestrian",
+        "rider",
+        "auto_rickshaw",
+        "animal",
+        "traffic_sign",
+        "traffic_light",
+        "vehicle_fallback",
+        "pothole",
+        "crack"
+    ],
+    "class_to_id": {
+        "car": 0,
+        "truck": 1,
+        "bus": 2,
+        "motorcycle": 3,
+        "bicycle": 4,
+        "pedestrian": 5,
+        "rider": 6,
+        "auto_rickshaw": 7,
+        "animal": 8,
+        "traffic_sign": 9,
+        "traffic_light": 10,
+        "vehicle_fallback": 11,
+        "pothole": 12,
+        "crack": 13
+    },
+    "id_to_class": {
+        "0": "car",
+        "1": "truck",
+        "2": "bus",
+        "3": "motorcycle",
+        "4": "bicycle",
+        "5": "pedestrian",
+        "6": "rider",
+        "7": "auto_rickshaw",
+        "8": "animal",
+        "9": "traffic_sign",
+        "10": "traffic_light",
+        "11": "vehicle_fallback",
+        "12": "pothole",
+        "13": "crack"
+    }
+}

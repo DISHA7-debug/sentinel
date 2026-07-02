@@ -16,6 +16,33 @@ async def get_health():
         }
     
     model_status = pipeline.registry.get_status()
+    
+    # Check if risk_scorer and scene_fusion are loaded successfully
+    try:
+        from core.risk_scorer import RiskScorer
+        risk_scorer_loaded = True
+        risk_scorer_error = None
+    except Exception as e:
+        risk_scorer_loaded = False
+        risk_scorer_error = str(e)
+        
+    try:
+        from core.scene_fusion_engine import SceneFusionEngine
+        scene_fusion_loaded = True
+        scene_fusion_error = None
+    except Exception as e:
+        scene_fusion_loaded = False
+        scene_fusion_error = str(e)
+        
+    model_status["risk_scorer"] = {
+        "loaded": risk_scorer_loaded,
+        "error": risk_scorer_error
+    }
+    model_status["scene_fusion"] = {
+        "loaded": scene_fusion_loaded,
+        "error": scene_fusion_error
+    }
+
     loaded_count = sum(1 for m in model_status.values() if m["loaded"])
     total_models = len(model_status)
     

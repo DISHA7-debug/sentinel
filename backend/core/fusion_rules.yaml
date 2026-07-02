@@ -1,0 +1,34 @@
+scene_risk_levels:
+  Low:
+    min_score: 0.0
+    max_score: 0.30
+  Medium:
+    min_score: 0.30
+    max_score: 0.60
+  High:
+    min_score: 0.60
+    max_score: 0.80
+  Critical:
+    min_score: 0.80
+    max_score: 1.00
+
+fusion_weights:
+  max_object_risk: 0.50
+  average_object_risk: 0.20
+  critical_object_count: 0.15
+  high_object_count: 0.10
+  vulnerable_object_bonus: 0.05
+
+vulnerable_or_high_priority_classes:
+  - pedestrian
+  - rider
+  - bicycle
+  - motorcycle
+  - animal
+  - pothole
+
+recommended_actions:
+  Low: "Continue driving normally"
+  Medium: "Stay alert and monitor road condition"
+  High: "Slow down and prepare to brake"
+  Critical: "Immediate driver alert: brake or avoid obstacle"
